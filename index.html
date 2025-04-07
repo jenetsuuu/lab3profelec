@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table Reservation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        h2 {
+            color: #555;
+            margin-top: 20px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            background: #fff;
+            margin: 5px auto;
+            padding: 10px;
+            width: 60%;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        form {
+            background: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 50%;
+            margin: 0 auto;
+        }
+
+        input {
+            padding: 8px;
+            margin: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: calc(100% - 20px);
+            display: block;
+        }
+
+        button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        button:hover {
+            background: #218838;
+        }
+
+        button.cancel {
+            background: #dc3545;
+        }
+
+        button.cancel:hover {
+            background: #c82333;
+        }
+
+        @media (max-width: 600px) {
+            form, li {
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Table Reservations</h1>
+
+    <h2>Available Tables</h2>
+    <ul id="tables"></ul>
+
+    <h2>Reserve a Table</h2>
+    <form id="reservationForm">
+        <label>Name: <input type="text" id="customerName" required></label><br>
+        <label>Guests: <input type="number" id="guests" required></label><br>
+        <label>Table ID: <input type="number" id="tableId" required></label><br>
+        <button type="submit">Reserve</button>
+    </form>
+
+    <h2>Reservations</h2>
+    <ul id="reservations"></ul>
+
+    <script>
+        const baseUrl = "http://localhost:3000";
+
+        async function fetchTables() {
+            const res = await fetch(baseUrl + "/tables");
+            const tables = await res.json();
+            document.getElementById("tables").innerHTML = tables.map(t => `<li>Table ${t.id} (${t.seats} seats)</li>`).join("");
+        }
+
+        async function fetchReservations() {
+            const res = await fetch(baseUrl + "/reservations");
+            const reservations = await res.json();
+            document.getElementById("reservations").innerHTML = reservations.map(r => `
+                <li>${r.customerName} reserved Table ${r.tableId} for ${r.guests} guests
+                    <button onclick="cancelReservation(${r.id})">Cancel</button>
+                </li>
+            `).join("");
+        }
+
+        document.getElementById("reservationForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const customerName = document.getElementById("customerName").value;
+            const guests = parseInt(document.getElementById("guests").value);
+            const tableId = parseInt(document.getElementById("tableId").value);
+
+            const res = await fetch(baseUrl + "/reserve", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ tableId, customerName, guests })
+            });
+
+            const data = await res.json();
+            alert(data.message || data.error);
+
+            fetchTables();
+            fetchReservations();
+        });
+
+        async function cancelReservation(id) {
+            await fetch(baseUrl + `/cancel/${id}`, { method: "DELETE" });
+            fetchTables();
+            fetchReservations();
+        }
+
+        fetchTables();
+        fetchReservations();
+    </script>
+</body>
+</html>
